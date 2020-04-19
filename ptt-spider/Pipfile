@@ -1,0 +1,14 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pymongo = "==3.10.1"
+redis = "==3.4.1"
+scrapy = "==2.0.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.7"
