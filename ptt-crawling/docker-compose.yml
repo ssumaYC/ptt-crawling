@@ -1,0 +1,23 @@
+version: "3.7"
+
+services:
+  mongo:
+    image: mongo:4.0
+    volumes:
+      - ./mongo_data:/data/db
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis:5.0
+    volumes:
+      - ./redis_data:/data
+    ports:
+      - "6379:6379"
+
+  spiderkeeper:
+    build: ./spiderkeeper/
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./spiderkeeper/data:/usr/spiderkeeper
