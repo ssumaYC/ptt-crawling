@@ -15,13 +15,14 @@ class CrawlArticleSpider(CrawlSpider):
     r = Redis(host=REDIS_HOST)
 
     rules = (
-        Rule(LinkExtractor(allow=r'Items/'), callback='parse_item', follow=True),
+        Rule(LinkExtractor(allow=r'cls/\d+'), callback='parse_item', follow=True),
+        Rule(LinkExtractor(allow=r'bbs/[\w\-]+/index.html'), callback='parse_article_list', follow=True),
     )
 
-    def __init__(self, start='', end='', job_id='', **kwargs):
-        super().__init__(**kwargs)
-        self.validate_start_and_end(start, end)
-        self.check_and_init_job_id(job_id)
+    # def __init__(self, start='', end='', job_id='', **kwargs):
+        # super().__init__(**kwargs)
+        # self.validate_start_and_end(start, end)
+        # self.check_and_init_job_id(job_id)
 
     def validate_start_and_end(self, start, end):
         if start == '' or end == '':
@@ -44,6 +45,25 @@ class CrawlArticleSpider(CrawlSpider):
             raise RuntimeError('job_id duplicate')
         else:
             self.r.sadd(job_id, 'init_job_id')
+
+    def parse_article_list(self, response):
+        if self.is_asking_over18(response):
+            payload = {
+                'from': response.xpath('//input/@value').get(),
+                'yes': response.xpath('//button/@value').get()
+            }
+            return scrapy.http.FormRequest(
+                url='https://www.ptt.cc/ask/over18',
+                method="POST",
+                formdata=payload,
+                callback=self.parse_article_list
+            )
+        else:
+            pass
+
+
+    def is_asking_over18(self, response):
+        return True if response.css('div.over18-notice') != [] else False
 
     def parse_item(self, response):
         item = {}
