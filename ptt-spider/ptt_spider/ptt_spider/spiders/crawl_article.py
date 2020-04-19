@@ -53,8 +53,19 @@ class CrawlArticleSpider(CrawlSpider):
         else:
             pass
         article_hrefs = self.extract_article_hrefs(response)
-        oldest_date, newest_date = self.get_newest_and_oldest_date(article_hrefs)
-
+        oldest_date, newest_date = self.get_oldest_and_newest_date(article_hrefs)
+        if oldest_date > self.end:
+            return self.form_request_to_previous_list_page(response)
+        elif newest_date < self.start:
+            return None
+        else:
+            for href in article_hrefs:
+                if r.sismember(self.job_id, bytes(href, 'utf-8')):
+                    continue
+                else:
+                    url = self.get_url_from_href(href)
+                    yield scrapy.http.Request(url, callback=self.parse_item)
+                    yield self.form_request_to_previous_list_page(response)
 
     def is_asking_over18(self, response):
         return True if response.css('div.over18-notice') != [] else False
@@ -83,25 +94,33 @@ class CrawlArticleSpider(CrawlSpider):
                 article_hrefs.append(href)
         return article_hrefs
 
-    def get_newest_and_oldest_date(self, hrefs):
+    def get_oldest_and_newest_date(self, hrefs):
         oldest = None
         newest = None
         for i in range(len(hrefs)):
             if oldest is None:
-                oldest = self.get_article_date(hrefs[i])
+                oldest_date = self.get_article_date(hrefs[i])
             if newest is None:
-                newest = self.get_article_date(hrefs[(-1 + i)])
-            if oldest != None and newest != None:
+                newest_date = self.get_article_date(hrefs[(-1 - i)])
+            if oldest_date != None and newest_date != None:
                 break
-        return oldest, newest
+        return oldest_date, newest_date
 
     def get_article_date(self, href):
-        resp = requests.get("https://" + self.allowed_domains[0] + href)
+        resp = requests.get(self.get_url_from_href(href))
         response = scrapy.Selector(resp)
         meta = response.css("div.article-metaline span.article-meta-value::text").getall()
         date = dt.strptime(meta[-1], "%c").date()
         return date
 
+    def form_request_to_previous_list_page(self, response):
+        previous_href = response.css('div.btn-group-paging').xpath('./a[2]/@href').get()
+        if previous:
+            url = self.get_url_from_href(previous_href)
+            return scrapy.http.Request(url, callback=self.parse_article_list)
+
+    def get_url_from_href(self, href):
+        return "https://" + self.allowed_domains[0] + href
 
     def parse_item(self, response):
         item = {}
