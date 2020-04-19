@@ -6,6 +6,7 @@ from ptt_spider.settings import REDIS_HOST
 from datetime import datetime as dt
 from datetime import date
 from redis import Redis
+import requests
 
 
 class CrawlArticleSpider(CrawlSpider):
@@ -48,22 +49,59 @@ class CrawlArticleSpider(CrawlSpider):
 
     def parse_article_list(self, response):
         if self.is_asking_over18(response):
-            payload = {
-                'from': response.xpath('//input/@value').get(),
-                'yes': response.xpath('//button/@value').get()
-            }
-            return scrapy.http.FormRequest(
-                url='https://www.ptt.cc/ask/over18',
-                method="POST",
-                formdata=payload,
-                callback=self.parse_article_list
-            )
+            return self.form_request_to_article_list(response)
         else:
             pass
+        article_hrefs = self.extract_article_hrefs(response)
+        oldest_date, newest_date = self.get_newest_and_oldest_date(article_hrefs)
 
 
     def is_asking_over18(self, response):
         return True if response.css('div.over18-notice') != [] else False
+
+    def form_request_to_article_list(self, response):
+        payload = {
+            'from': response.xpath('//input/@value').get(),
+            'yes': response.xpath('//button/@value').get()
+        }
+        return scrapy.http.FormRequest(
+            url='https://www.ptt.cc/ask/over18',
+            method="POST",
+            formdata=payload,
+            callback=self.parse_article_list,
+            dont_filter=True)
+
+    def extract_article_hrefs(self, response):
+        rlist = response.css('div.r-list-container').xpath('./div')
+        article_hrefs = []
+        for r in rlist[1:]:
+            if r.xpath('./@class').get() == 'r-list-sep':
+                break
+            else:
+                href = r.css('div.title a::attr(href)').get()
+            if href is not None:
+                article_hrefs.append(href)
+        return article_hrefs
+
+    def get_newest_and_oldest_date(self, hrefs):
+        oldest = None
+        newest = None
+        for i in range(len(hrefs)):
+            if oldest is None:
+                oldest = self.get_article_date(hrefs[i])
+            if newest is None:
+                newest = self.get_article_date(hrefs[(-1 + i)])
+            if oldest != None and newest != None:
+                break
+        return oldest, newest
+
+    def get_article_date(self, href):
+        resp = requests.get("https://" + self.allowed_domains[0] + href)
+        response = scrapy.Selector(resp)
+        meta = response.css("div.article-metaline span.article-meta-value::text").getall()
+        date = dt.strptime(meta[-1], "%c").date()
+        return date
+
 
     def parse_item(self, response):
         item = {}

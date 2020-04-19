@@ -7,6 +7,7 @@ name = "pypi"
 pymongo = "==3.10.1"
 redis = "==3.4.1"
 scrapy = "==2.0.0"
+requests = "*"
 
 [dev-packages]
 
