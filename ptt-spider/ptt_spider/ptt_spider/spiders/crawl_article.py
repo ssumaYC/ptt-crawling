@@ -3,6 +3,7 @@ import scrapy
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
 from ptt_spider.settings import REDIS_HOST
+from ptt_spider.items import PttArticleItem, PttArticleItemLoader
 from datetime import datetime as dt
 from datetime import date
 from redis import Redis
@@ -20,10 +21,10 @@ class CrawlArticleSpider(CrawlSpider):
         Rule(LinkExtractor(allow=r'bbs/[\w\-]+/index.html'), callback='parse_article_list', follow=True),
     )
 
-    # def __init__(self, start='', end='', job_id='', **kwargs):
-        # super().__init__(**kwargs)
-        # self.validate_start_and_end(start, end)
-        # self.check_and_init_job_id(job_id)
+    def __init__(self, start='20200419', end='20200420', job_id='foobar', **kwargs):
+        super().__init__(**kwargs)
+        self.validate_start_and_end(start, end)
+        self.check_and_init_job_id(job_id)
 
     def validate_start_and_end(self, start, end):
         if start == '' or end == '':
@@ -46,6 +47,7 @@ class CrawlArticleSpider(CrawlSpider):
             raise RuntimeError('job_id duplicate')
         else:
             self.r.sadd(job_id, 'init_job_id')
+        self.job_id = job_id
 
     def parse_article_list(self, response):
         if self.is_asking_over18(response):
@@ -60,7 +62,7 @@ class CrawlArticleSpider(CrawlSpider):
             return None
         else:
             for href in article_hrefs:
-                if r.sismember(self.job_id, bytes(href, 'utf-8')):
+                if self.r.sismember(self.job_id, bytes(href, 'utf-8')):
                     continue
                 else:
                     url = self.get_url_from_href(href)
@@ -115,7 +117,7 @@ class CrawlArticleSpider(CrawlSpider):
 
     def form_request_to_previous_list_page(self, response):
         previous_href = response.css('div.btn-group-paging').xpath('./a[2]/@href').get()
-        if previous:
+        if previous_href:
             url = self.get_url_from_href(previous_href)
             return scrapy.http.Request(url, callback=self.parse_article_list)
 
@@ -123,9 +125,10 @@ class CrawlArticleSpider(CrawlSpider):
         return "https://" + self.allowed_domains[0] + href
 
     def parse_item(self, response):
-        item = {}
-        #item['domain_id'] = response.xpath('//input[@id="sid"]/@value').get()
-        #item['name'] = response.xpath('//div[@id="name"]').get()
-        #item['description'] = response.xpath('//div[@id="description"]').get()
+        loader = PttArticleItemLoader(item=PttArticleItem(), response=response)
+        meta_css = "div.article-metaline span.article-meta-value::text"
+        loader.add_css('authorId', meta_css)
+        loader.add_css('authorName', meta_css)
+        item = loader.load_item()
         return item
 
