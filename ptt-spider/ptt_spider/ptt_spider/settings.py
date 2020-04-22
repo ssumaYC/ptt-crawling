@@ -13,13 +13,11 @@
 import os
 if os.getenv('ENV') == "LOCAL":
     MONGO_HOST = "localhost"
-    MONGO_DB = "test"
-    MONGO_COL = "test"
+    PTT_DB = "test"
     REDIS_HOST = "localhost"
 else:
     MONGO_HOST = "10.140.0.8"
-    MONGO_DB = "ptt_spider"
-    MONGO_COL = "article"
+    PTT_DB = "ptt_spider"
     REDIS_HOST = "10.140.0.8"
 
 BOT_NAME = 'ptt_spider'
@@ -78,9 +76,9 @@ ROBOTSTXT_OBEY = False
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    'ptt_spider.pipelines.PttSpiderPipeline': 300,
-#}
+ITEM_PIPELINES = {
+   'ptt_spider.pipelines.PttSpiderPipeline': 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
