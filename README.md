@@ -3,11 +3,11 @@ Ptt article crawling system with MongoDB, Redis, Scrapy and Spiderkeeper
 
 ## 機器配置
 - Master
-  -- 服務: MongoDB, Redis, Spiderkeeper
-  -- 用途：使用 Spiderkeeper提供 web介面部署以及監控 spider、使用 MongoDB儲存資料、使用 Redis紀錄爬取狀況
+  - 服務: MongoDB, Redis, Spiderkeeper
+  - 用途：使用 Spiderkeeper提供 web介面部署以及監控 spider、使用 MongoDB儲存資料、使用 Redis紀錄爬取狀況
 - Spider
-  -- 服務: Scrapyd 
-  -- 用途： 實際執行爬蟲的主機
+  - 服務: Scrapyd 
+  - 用途： 實際執行爬蟲的主機
 
 ## 安裝流程
 - **Master**
