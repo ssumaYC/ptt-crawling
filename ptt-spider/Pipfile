@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 pymongo = "==3.10.1"
 redis = "==3.4.1"
-scrapy = "==2.0.0"
+scrapy = "==2.5.1"
 requests = "*"
 scrapyd = "*"
 scrapyd-client = "*"
